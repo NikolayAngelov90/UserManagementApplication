@@ -4,6 +4,7 @@ import com.usermanagement.model.User;
 import com.usermanagement.repository.UserRepository;
 import com.usermanagement.shared.exception.PhoneNumberAlreadyExistException;
 import com.usermanagement.shared.exception.UserAlreadyExistsException;
+import com.usermanagement.shared.exception.UserNotFoundException;
 import com.usermanagement.web.dto.UserRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -32,6 +33,12 @@ public class UserService {
 
         User user = userRepository.save(initializeUser(userRequest));
         log.info("User saved successfully. [{}]", user);
+    }
+
+    public User getUserByEmail(String email) {
+
+        return userRepository.findByEmail(email).orElseThrow(
+                () -> new UserNotFoundException("User with email [%s] not found.".formatted(email)));
     }
 
     private User initializeUser(UserRequest userRequest) {
