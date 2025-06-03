@@ -10,6 +10,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/v1/users")
 public class UserController {
@@ -37,6 +39,18 @@ public class UserController {
         UserInfoResponse userInfoResponse = DtoMapper.fromUser(user);
 
         return ResponseEntity.ok(userInfoResponse);
+    }
+
+    @GetMapping("/all")
+    public ResponseEntity<List<UserInfoResponse>> getAllUsers(@RequestParam(required = false) String search) {
+
+        List<User> users = userService.getAllUsers(search);
+        List<UserInfoResponse> userInfoResponses = users
+                .stream()
+                .map(DtoMapper::fromUser)
+                .toList();
+
+        return ResponseEntity.ok(userInfoResponses);
     }
 
 }

@@ -10,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 @Slf4j
@@ -39,6 +40,23 @@ public class UserService {
 
         return userRepository.findByEmail(email).orElseThrow(
                 () -> new UserNotFoundException("User with email [%s] not found.".formatted(email)));
+    }
+
+    public List<User> getAllUsers(String searchTerm) {
+
+        List<User> users;
+
+        if (searchTerm != null && !searchTerm.trim().isEmpty()) {
+            users = userRepository.searchUsers(searchTerm.trim());
+        } else {
+            users = userRepository.findAllByOrderByLastNameAscDateOfBirthAsc();
+        }
+
+        if (users.isEmpty()) {
+            throw new UserNotFoundException("No users found.");
+        }
+
+        return users;
     }
 
     private User initializeUser(UserRequest userRequest) {

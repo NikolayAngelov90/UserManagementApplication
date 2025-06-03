@@ -1,5 +1,7 @@
 package com.usermanagement.web;
 
+import com.usermanagement.shared.exception.PhoneNumberAlreadyExistException;
+import com.usermanagement.shared.exception.UserAlreadyExistsException;
 import com.usermanagement.shared.exception.UserNotFoundException;
 import com.usermanagement.web.dto.ErrorResponse;
 import org.springframework.http.HttpStatus;
@@ -40,5 +42,13 @@ public class GlobalExceptionHandler {
         ErrorResponse errorResponse = new ErrorResponse(HttpStatus.NOT_FOUND.value(), e.getMessage());
 
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
+    }
+
+    @ExceptionHandler({PhoneNumberAlreadyExistException.class, UserAlreadyExistsException.class})
+    public ResponseEntity<ErrorResponse> AlreadyExistsException(Exception e) {
+
+        ErrorResponse errorResponse = new ErrorResponse(HttpStatus.CONFLICT.value(), e.getMessage());
+
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
     }
 }
