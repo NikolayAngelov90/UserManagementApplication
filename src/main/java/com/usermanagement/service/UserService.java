@@ -5,34 +5,40 @@ import com.usermanagement.repository.UserRepository;
 import com.usermanagement.shared.exception.PhoneNumberAlreadyExistException;
 import com.usermanagement.shared.exception.UserAlreadyExistsException;
 import com.usermanagement.shared.exception.UserNotFoundException;
-import com.usermanagement.web.dto.UserRequest;
+import com.usermanagement.web.dto.UserCreateRequest;
+import com.usermanagement.web.dto.UserUpdateRequest;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Slf4j
 @Service
 public class UserService {
 
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    public UserService(UserRepository userRepository) {
+    public UserService(UserRepository userRepository,
+                       PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
-    public void saveUser(UserRequest userRequest) {
+    public void saveUser(UserCreateRequest userCreateRequest) {
 
-        Optional<User> userOptional = userRepository.findByEmail(userRequest.getEmail());
+        Optional<User> userOptional = userRepository.findByEmail(userCreateRequest.getEmail());
 
         if (userOptional.isPresent()) {
             throw new UserAlreadyExistsException("User with email [%s] already exists."
-                    .formatted(userRequest.getEmail()));
+                    .formatted(userCreateRequest.getEmail()));
         }
 
-        User user = userRepository.save(initializeUser(userRequest));
+        User user = userRepository.save(initializeUser(userCreateRequest));
         log.info("User saved successfully. [{}]", user);
     }
 
@@ -42,12 +48,12 @@ public class UserService {
                 () -> new UserNotFoundException("User with email [%s] not found.".formatted(email)));
     }
 
-    public List<User> getAllUsers(String searchTerm) {
+    public List<User> getAllUsers(String searchName) {
 
         List<User> users;
 
-        if (searchTerm != null && !searchTerm.trim().isEmpty()) {
-            users = userRepository.searchUsers(searchTerm.trim());
+        if (searchName != null && !searchName.trim().isEmpty()) {
+            users = userRepository.searchUsers(searchName.trim());
         } else {
             users = userRepository.findAllByOrderByLastNameAscDateOfBirthAsc();
         }
@@ -59,21 +65,48 @@ public class UserService {
         return users;
     }
 
-    private User initializeUser(UserRequest userRequest) {
+    public void updateUser(UUID UserId, UserUpdateRequest userUpdateRequest) {
 
-        Optional<User> userByPhone = userRepository.findByPhoneNumber(userRequest.getPhoneNumber());
+        User user = userRepository.findById(UserId).orElseThrow(
+                () -> new UserNotFoundException("User with id [%s] not found.".formatted(UserId)));
+
+        user.setFirstName(userUpdateRequest.getFirstName().trim());
+        user.setLastName(userUpdateRequest.getLastName().trim());
+        user.setDateOfBirth(userUpdateRequest.getDateOfBirth());
+
+        Optional<User> UserByPhone = userRepository.findByPhoneNumber(userUpdateRequest.getPhoneNumber());
+        if (UserByPhone.isPresent() && !UserByPhone.get().getId().equals(user.getId())) {
+            throw new PhoneNumberAlreadyExistException("Phone number [%s] already exists."
+                    .formatted(userUpdateRequest.getPhoneNumber()));
+        }
+        user.setPhoneNumber(userUpdateRequest.getPhoneNumber().trim());
+
+        Optional<User> userOptional = userRepository.findByEmail(userUpdateRequest.getEmail());
+        if (userOptional.isPresent()) {
+            throw new UserAlreadyExistsException("User with email [%s] already exists."
+                    .formatted(userUpdateRequest.getEmail()));
+        }
+        user.setEmail(userUpdateRequest.getEmail().trim());
+        user.setPassword(passwordEncoder.encode(userUpdateRequest.getPassword()));
+
+        userRepository.save(user);
+    }
+
+    private User initializeUser(UserCreateRequest userCreateRequest) {
+
+        Optional<User> userByPhone = userRepository.findByPhoneNumber(userCreateRequest.getPhoneNumber());
         if (userByPhone.isPresent()) {
             throw new PhoneNumberAlreadyExistException("Phone number [%s] already exists."
-                    .formatted(userRequest.getPhoneNumber()));
+                    .formatted(userCreateRequest.getPhoneNumber()));
         }
 
         return User.builder()
-                .firstName(userRequest.getFirstName())
-                .lastName(userRequest.getLastName())
-                .dateOfBirth(userRequest.getDateOfBirth())
-                .phoneNumber(userRequest.getPhoneNumber())
-                .email(userRequest.getEmail())
-                .password(userRequest.getPassword())
+                .firstName(userCreateRequest.getFirstName())
+                .lastName(userCreateRequest.getLastName())
+                .dateOfBirth(userCreateRequest.getDateOfBirth())
+                .phoneNumber(userCreateRequest.getPhoneNumber())
+                .email(userCreateRequest.getEmail())
+                .password(passwordEncoder.encode(userCreateRequest.getPassword()))
                 .createdAt(LocalDateTime.now())
                 .build();
     }

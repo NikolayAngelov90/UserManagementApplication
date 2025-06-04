@@ -3,7 +3,8 @@ package com.usermanagement.web;
 import com.usermanagement.model.User;
 import com.usermanagement.service.UserService;
 import com.usermanagement.web.dto.UserInfoResponse;
-import com.usermanagement.web.dto.UserRequest;
+import com.usermanagement.web.dto.UserCreateRequest;
+import com.usermanagement.web.dto.UserUpdateRequest;
 import com.usermanagement.web.mapper.DtoMapper;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -11,6 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/users")
@@ -23,9 +25,9 @@ public class UserController {
     }
 
     @PostMapping("/create")
-    public ResponseEntity<Void> createUser(@RequestBody @Valid UserRequest userRequest) {
+    public ResponseEntity<Void> createUser(@RequestBody @Valid UserCreateRequest userCreateRequest) {
 
-        userService.saveUser(userRequest);
+        userService.saveUser(userCreateRequest);
 
         return ResponseEntity
                 .status(HttpStatus.CREATED)
@@ -51,6 +53,15 @@ public class UserController {
                 .toList();
 
         return ResponseEntity.ok(userInfoResponses);
+    }
+
+    @PatchMapping("/{userId}")
+    public ResponseEntity<Void> updateUser(@RequestBody @Valid UserUpdateRequest userUpdateRequest,
+                                           @PathVariable UUID userId) {
+
+        userService.updateUser(userId, userUpdateRequest);
+
+        return ResponseEntity.ok().build();
     }
 
 }

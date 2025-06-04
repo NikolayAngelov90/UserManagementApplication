@@ -12,7 +12,7 @@ import java.time.LocalDate;
 
 @Builder
 @Data
-public class UserRequest {
+public class UserCreateRequest {
 
     @NotBlank(message = "First name must be provided")
     @Size(min = 3, max = 20, message = "First name must be between 3 and 20 characters")
