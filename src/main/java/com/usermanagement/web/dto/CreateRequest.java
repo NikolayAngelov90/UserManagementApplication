@@ -9,11 +9,10 @@ import lombok.Builder;
 import lombok.Data;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 
 @Builder
 @Data
-public class UserInfoResponse {
+public class CreateRequest {
 
     @NotBlank(message = "First name must be provided")
     @Size(min = 3, max = 20, message = "First name must be between 3 and 20 characters")
@@ -33,6 +32,7 @@ public class UserInfoResponse {
     @Email(message = "Email must be valid")
     private String email;
 
-    @NotNull
-    private LocalDateTime createdAt;
+    @NotBlank(message = "Password must be provided")
+    @Size(min = 8, max = 20, message = "Password must be between 8 and 20 characters")
+    private String password;
 }

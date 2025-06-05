@@ -5,20 +5,22 @@ import com.usermanagement.repository.UserRepository;
 import com.usermanagement.shared.exception.PhoneNumberAlreadyExistException;
 import com.usermanagement.shared.exception.UserAlreadyExistsException;
 import com.usermanagement.shared.exception.UserNotFoundException;
-import com.usermanagement.web.dto.UserCreateRequest;
-import com.usermanagement.web.dto.UserUpdateRequest;
+import com.usermanagement.web.dto.UpdateRequest;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 @Slf4j
 @Service
-public class UserService {
+public class UserService implements UserDetailsService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -27,19 +29,6 @@ public class UserService {
                        PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
-    }
-
-    public void saveUser(UserCreateRequest userCreateRequest) {
-
-        Optional<User> userOptional = userRepository.findByEmail(userCreateRequest.getEmail());
-
-        if (userOptional.isPresent()) {
-            throw new UserAlreadyExistsException("User with email [%s] already exists."
-                    .formatted(userCreateRequest.getEmail()));
-        }
-
-        User user = userRepository.save(initializeUser(userCreateRequest));
-        log.info("User saved successfully. [{}]", user);
     }
 
     public User getUserByEmail(String email) {
@@ -65,49 +54,54 @@ public class UserService {
         return users;
     }
 
-    public void updateUser(UUID UserId, UserUpdateRequest userUpdateRequest) {
+    public void updateUser(UUID UserId, UpdateRequest updateRequest) {
 
         User user = userRepository.findById(UserId).orElseThrow(
                 () -> new UserNotFoundException("User with id [%s] not found.".formatted(UserId)));
 
-        user.setFirstName(userUpdateRequest.getFirstName().trim());
-        user.setLastName(userUpdateRequest.getLastName().trim());
-        user.setDateOfBirth(userUpdateRequest.getDateOfBirth());
+        user.setFirstName(updateRequest.getFirstName().trim());
+        user.setLastName(updateRequest.getLastName().trim());
+        user.setDateOfBirth(updateRequest.getDateOfBirth());
 
-        Optional<User> UserByPhone = userRepository.findByPhoneNumber(userUpdateRequest.getPhoneNumber());
+        Optional<User> UserByPhone = userRepository.findByPhoneNumber(updateRequest.getPhoneNumber());
         if (UserByPhone.isPresent() && !UserByPhone.get().getId().equals(user.getId())) {
             throw new PhoneNumberAlreadyExistException("Phone number [%s] already exists."
-                    .formatted(userUpdateRequest.getPhoneNumber()));
+                    .formatted(updateRequest.getPhoneNumber()));
         }
-        user.setPhoneNumber(userUpdateRequest.getPhoneNumber().trim());
+        user.setPhoneNumber(updateRequest.getPhoneNumber().trim());
 
-        Optional<User> userOptional = userRepository.findByEmail(userUpdateRequest.getEmail());
+        Optional<User> userOptional = userRepository.findByEmail(updateRequest.getEmail());
         if (userOptional.isPresent()) {
             throw new UserAlreadyExistsException("User with email [%s] already exists."
-                    .formatted(userUpdateRequest.getEmail()));
+                    .formatted(updateRequest.getEmail()));
         }
-        user.setEmail(userUpdateRequest.getEmail().trim());
-        user.setPassword(passwordEncoder.encode(userUpdateRequest.getPassword()));
+        user.setEmail(updateRequest.getEmail().trim());
+        user.setPassword(passwordEncoder.encode(updateRequest.getPassword()));
 
         userRepository.save(user);
     }
 
-    private User initializeUser(UserCreateRequest userCreateRequest) {
+    public void saveUser(User user) {
+        userRepository.save(user);
+    }
 
-        Optional<User> userByPhone = userRepository.findByPhoneNumber(userCreateRequest.getPhoneNumber());
-        if (userByPhone.isPresent()) {
-            throw new PhoneNumberAlreadyExistException("Phone number [%s] already exists."
-                    .formatted(userCreateRequest.getPhoneNumber()));
-        }
+    public boolean checkIfUserExists(String email) {
+        return userRepository.findByEmail(email).isPresent();
+    }
 
-        return User.builder()
-                .firstName(userCreateRequest.getFirstName())
-                .lastName(userCreateRequest.getLastName())
-                .dateOfBirth(userCreateRequest.getDateOfBirth())
-                .phoneNumber(userCreateRequest.getPhoneNumber())
-                .email(userCreateRequest.getEmail())
-                .password(passwordEncoder.encode(userCreateRequest.getPassword()))
-                .createdAt(LocalDateTime.now())
-                .build();
+    public boolean checkIfPhoneNumberExists(String phoneNumber) {
+        return userRepository.findByPhoneNumber(phoneNumber).isPresent();
+    }
+
+    @Override
+    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("User not found."));
+
+        SimpleGrantedAuthority authority = new SimpleGrantedAuthority("ROLE_" + user.getRole().name());
+
+        return new org.springframework.security.core.userdetails.User(
+                user.getEmail(), user.getPassword(), List.of(authority));
     }
 }

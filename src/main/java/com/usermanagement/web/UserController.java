@@ -2,12 +2,9 @@ package com.usermanagement.web;
 
 import com.usermanagement.model.User;
 import com.usermanagement.service.UserService;
-import com.usermanagement.web.dto.UserInfoResponse;
-import com.usermanagement.web.dto.UserCreateRequest;
-import com.usermanagement.web.dto.UserUpdateRequest;
+import com.usermanagement.web.dto.*;
 import com.usermanagement.web.mapper.DtoMapper;
 import jakarta.validation.Valid;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -24,44 +21,34 @@ public class UserController {
         this.userService = userService;
     }
 
-    @PostMapping("/create")
-    public ResponseEntity<Void> createUser(@RequestBody @Valid UserCreateRequest userCreateRequest) {
-
-        userService.saveUser(userCreateRequest);
-
-        return ResponseEntity
-                .status(HttpStatus.CREATED)
-                .build();
-    }
-
-    @GetMapping("/by-email")
-    public ResponseEntity<UserInfoResponse> getByEmail(@RequestParam String email) {
-
-        User user = userService.getUserByEmail(email);
-        UserInfoResponse userInfoResponse = DtoMapper.fromUser(user);
-
-        return ResponseEntity.ok(userInfoResponse);
-    }
-
-    @GetMapping("/all")
-    public ResponseEntity<List<UserInfoResponse>> getAllUsers(@RequestParam(required = false) String search) {
+    @GetMapping
+    public ResponseEntity<List<InfoResponse>> getAllUsers(@RequestParam(required = false) String search) {
 
         List<User> users = userService.getAllUsers(search);
-        List<UserInfoResponse> userInfoResponses = users
+        List<InfoResponse> userInfoList = users
                 .stream()
                 .map(DtoMapper::fromUser)
                 .toList();
 
-        return ResponseEntity.ok(userInfoResponses);
+        return ResponseEntity.ok(userInfoList);
+    }
+
+    @GetMapping("/by-email")
+    public ResponseEntity<InfoResponse> getByEmail(@RequestParam String email) {
+
+        User user = userService.getUserByEmail(email);
+        InfoResponse infoResponse = DtoMapper.fromUser(user);
+
+        return ResponseEntity.ok(infoResponse);
     }
 
     @PatchMapping("/{userId}")
-    public ResponseEntity<Void> updateUser(@RequestBody @Valid UserUpdateRequest userUpdateRequest,
+    public ResponseEntity<Void> updateUser(@RequestBody @Valid UpdateRequest updateRequest,
                                            @PathVariable UUID userId) {
 
-        userService.updateUser(userId, userUpdateRequest);
+        userService.updateUser(userId, updateRequest);
 
-        return ResponseEntity.ok().build();
+        return ResponseEntity.noContent().build();
     }
 
 }
