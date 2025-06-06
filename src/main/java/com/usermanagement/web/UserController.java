@@ -6,6 +6,7 @@ import com.usermanagement.web.dto.*;
 import com.usermanagement.web.mapper.DtoMapper;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -21,6 +22,7 @@ public class UserController {
         this.userService = userService;
     }
 
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     @GetMapping
     public ResponseEntity<List<InfoResponse>> getAllUsers(@RequestParam(required = false) String search) {
 
@@ -33,6 +35,7 @@ public class UserController {
         return ResponseEntity.ok(userInfoList);
     }
 
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     @GetMapping("/by-email")
     public ResponseEntity<InfoResponse> getByEmail(@RequestParam String email) {
 
@@ -42,11 +45,21 @@ public class UserController {
         return ResponseEntity.ok(infoResponse);
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PatchMapping("/{userId}")
     public ResponseEntity<Void> updateUser(@RequestBody @Valid UpdateRequest updateRequest,
                                            @PathVariable UUID userId) {
 
         userService.updateUser(userId, updateRequest);
+
+        return ResponseEntity.noContent().build();
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @DeleteMapping("/{userId}")
+    public ResponseEntity<Void> deleteUser(@PathVariable UUID userId) {
+
+        userService.deleteUser(userId);
 
         return ResponseEntity.noContent().build();
     }

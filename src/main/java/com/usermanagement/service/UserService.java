@@ -31,12 +31,6 @@ public class UserService implements UserDetailsService {
         this.passwordEncoder = passwordEncoder;
     }
 
-    public User getUserByEmail(String email) {
-
-        return userRepository.findByEmail(email).orElseThrow(
-                () -> new UserNotFoundException("User with email [%s] not found.".formatted(email)));
-    }
-
     public List<User> getAllUsers(String searchName) {
 
         List<User> users;
@@ -59,30 +53,63 @@ public class UserService implements UserDetailsService {
         User user = userRepository.findById(UserId).orElseThrow(
                 () -> new UserNotFoundException("User with id [%s] not found.".formatted(UserId)));
 
-        user.setFirstName(updateRequest.getFirstName().trim());
-        user.setLastName(updateRequest.getLastName().trim());
-        user.setDateOfBirth(updateRequest.getDateOfBirth());
-
-        Optional<User> UserByPhone = userRepository.findByPhoneNumber(updateRequest.getPhoneNumber());
-        if (UserByPhone.isPresent() && !UserByPhone.get().getId().equals(user.getId())) {
-            throw new PhoneNumberAlreadyExistException("Phone number [%s] already exists."
-                    .formatted(updateRequest.getPhoneNumber()));
+        if (updateRequest.getFirstName() != null) {
+            user.setFirstName(updateRequest.getFirstName().trim());
         }
-        user.setPhoneNumber(updateRequest.getPhoneNumber().trim());
 
-        Optional<User> userOptional = userRepository.findByEmail(updateRequest.getEmail());
-        if (userOptional.isPresent()) {
-            throw new UserAlreadyExistsException("User with email [%s] already exists."
-                    .formatted(updateRequest.getEmail()));
+        if (updateRequest.getLastName() != null) {
+            user.setLastName(updateRequest.getLastName().trim());
         }
-        user.setEmail(updateRequest.getEmail().trim());
-        user.setPassword(passwordEncoder.encode(updateRequest.getPassword()));
+
+        if (updateRequest.getDateOfBirth() != null) {
+            user.setDateOfBirth(updateRequest.getDateOfBirth());
+        }
+
+        if (updateRequest.getPhoneNumber() != null) {
+
+            Optional<User> UserByPhone = userRepository.findByPhoneNumber(updateRequest.getPhoneNumber());
+            if (UserByPhone.isPresent() && !UserByPhone.get().getId().equals(user.getId())) {
+                throw new PhoneNumberAlreadyExistException("Phone number [%s] already exists."
+                        .formatted(updateRequest.getPhoneNumber()));
+            }
+            user.setPhoneNumber(updateRequest.getPhoneNumber());
+        }
+
+        if (updateRequest.getEmail() != null) {
+
+            Optional<User> userOptional = userRepository.findByEmail(updateRequest.getEmail());
+            if (userOptional.isPresent()) {
+                throw new UserAlreadyExistsException("User with email [%s] already exists."
+                        .formatted(updateRequest.getEmail()));
+            }
+            user.setEmail(updateRequest.getEmail().trim());
+        }
+
+        if (updateRequest.getPassword() != null) {
+            user.setPassword(passwordEncoder.encode(updateRequest.getPassword()));
+        }
 
         userRepository.save(user);
+        log.info("User [{}] updated successfully.", user.getEmail());
+    }
+
+    public void deleteUser(UUID UserId) {
+
+        User user = userRepository.findById(UserId).orElseThrow(
+                () -> new UserNotFoundException("User with id [%s] not found.".formatted(UserId)));
+
+        userRepository.delete(user);
+        log.info("User [{}] deleted successfully.", user.getEmail());
     }
 
     public void saveUser(User user) {
         userRepository.save(user);
+    }
+
+    public User getUserByEmail(String email) {
+
+        return userRepository.findByEmail(email).orElseThrow(
+                () -> new UserNotFoundException("User with email [%s] not found.".formatted(email)));
     }
 
     public boolean checkIfUserExists(String email) {
@@ -100,6 +127,7 @@ public class UserService implements UserDetailsService {
                 .orElseThrow(() -> new UserNotFoundException("User not found."));
 
         SimpleGrantedAuthority authority = new SimpleGrantedAuthority("ROLE_" + user.getRole().name());
+        log.info("Attempting to load user by email [{}].", user.getEmail());
 
         return new org.springframework.security.core.userdetails.User(
                 user.getEmail(), user.getPassword(), List.of(authority));

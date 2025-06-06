@@ -8,8 +8,6 @@ import com.usermanagement.web.dto.CreateRequest;
 import com.usermanagement.web.dto.JwtAuthenticationResponse;
 import com.usermanagement.web.dto.LoginRequest;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -23,16 +21,13 @@ public class AuthenticationService {
     private final UserService userService;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
-    private final AuthenticationManager authenticationManager;
 
     public AuthenticationService(UserService userService,
                                  PasswordEncoder passwordEncoder,
-                                 JwtService jwtService,
-                                 AuthenticationManager authenticationManager) {
+                                 JwtService jwtService) {
         this.userService = userService;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
-        this.authenticationManager = authenticationManager;
     }
 
     public JwtAuthenticationResponse createUser(CreateRequest createRequest) {
@@ -68,8 +63,6 @@ public class AuthenticationService {
     }
 
     public JwtAuthenticationResponse login(LoginRequest loginRequest) {
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(loginRequest.getEmail(), loginRequest.getPassword()));
 
         User user = userService.getUserByEmail(loginRequest.getEmail());
 
